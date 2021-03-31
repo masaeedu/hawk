@@ -31,9 +31,10 @@ import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.Writer
 import Data.Foldable
 import Data.List.Extra (stripSuffix, wordsBy)
-import Language.Haskell.Interpreter (InterpreterError, InterpreterT)
-import Language.Haskell.Interpreter.Unsafe (unsafeRunInterpreterWithArgs)
+import Language.Haskell.Interpreter (InterpreterError, InterpreterT, runInterpreter)
+import Language.Haskell.Interpreter.Unsafe (unsafeRunInterpreterWithArgsLibdir)
 import System.Directory.PathFinder
+import System.Environment (lookupEnv)
 import Text.Printf (printf)
 import qualified System.FilePath as FilePath
 
@@ -261,5 +262,8 @@ extraGhcArgs = pure []
 --       Do we still need the lock?
 runHawkInterpreter :: InterpreterT IO a -> IO (Either InterpreterError a)
 runHawkInterpreter mx = do
-    args <- extraGhcArgs
-    unsafeRunInterpreterWithArgs args mx
+  mLibDir <- liftIO $ lookupEnv "GHC_LIB_DIR"
+  case mLibDir of
+    Just libDir ->
+      unsafeRunInterpreterWithArgsLibdir [] libDir mx
+    Nothing -> runInterpreter mx
