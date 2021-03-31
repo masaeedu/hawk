@@ -249,7 +249,7 @@ detectPackageDbs = do
 
 -- something like ["-package-db /.../haskell-awk/cabal-dev/package-7.6.3.conf"]
 extraGhcArgs :: IO [String]
-extraGhcArgs = fmap (printf "-package-db %s") <$> detectPackageDbs
+extraGhcArgs = pure []
 
 -- | a version of runInterpreter which can load libraries
 --   installed along hawk's sandbox folder, if applicable.
