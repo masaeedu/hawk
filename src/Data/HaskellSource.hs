@@ -10,6 +10,9 @@ import System.Directory
 import System.Exit
 import System.Process
 import Text.Printf
+import System.FilePath ((</>))
+import System.Environment (lookupEnv)
+import Control.Monad.IO.Class (liftIO)
 
 import Control.Monad.Trans.Uncertain
 
@@ -93,11 +96,15 @@ compileFile = compileFileWithArgs []
 
 compileFileWithArgs :: [String] -> FilePath -> UncertainT IO ()
 compileFileWithArgs args f = do
-    absFilePath <- lift $ canonicalizePath f
-    let args' = absFilePath : "-v0" : args
-    (exitCode, out, err) <- lift $ readProcessWithExitCode "ghc" args' ""
-    case (exitCode, out ++ err) of
-      (ExitSuccess, [])  -> return ()
-      (ExitSuccess, _msg) -> return ()  -- TODO: output warnings via 'multilineWarn msg'?
-      (_          , [])  -> fail $ printf "could not compile %s" (show f)
-      (_          , msg) -> multilineFail msg
+  absFilePath <- lift $ canonicalizePath f
+  let args' = absFilePath : "-v0" : args
+  mGhcBinDir <- liftIO $ lookupEnv "GHC_BIN_DIR"
+  case mGhcBinDir of
+    Nothing -> fail $ printf "GHC_BIN_DIR environment variable not specified, unable to locate GHC for compiling user prelude"
+    Just ghcBinDir -> do
+      (exitCode, out, err) <- lift $ readProcessWithExitCode (ghcBinDir </> "ghc") args' ""
+      case (exitCode, out ++ err) of
+        (ExitSuccess, [])  -> return ()
+        (ExitSuccess, _msg) -> return ()  -- TODO: output warnings via 'multilineWarn msg'?
+        (_          , [])  -> fail $ printf "could not compile %s" (show f)
+        (_          , msg) -> multilineFail msg
